@@ -36,7 +36,7 @@ React.ComponentProps<"a">
 const PaginationLink = ({
 className,
 isActive,
-size = "icon",
+size = "default",
 ...props
 }: PaginationLinkProps) => (
 <a

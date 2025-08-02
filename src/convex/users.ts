@@ -1,29 +1,7 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
-import { query, mutation, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { query, mutation } from "./_generated/server";
 
-export const getCurrentUser = async (ctx: QueryCtx) => {
-  // First try Convex Auth
-  const userId = await getAuthUserId(ctx);
-  if (userId !== null) {
-    return await ctx.db.get(userId);
-  }
-  
-  // If Convex Auth fails, try our custom auth system
-  // We'll use a session token approach
-  const sessionToken = ctx.headers().get("x-session-token");
-  if (sessionToken) {
-    // For now, we'll use a simple approach - you can enhance this later
-    // This is a temporary solution to get things working
-    console.log(`[DEBUG] Using custom auth with session token: ${sessionToken}`);
-    return null; // We'll implement this properly in the next step
-  }
-  
-  return null;
-};
-
-export const currentUser = query({
-  args: {},
+export const getCurrentUser = query({
   returns: v.union(
     v.null(),
     v.object({
@@ -38,11 +16,8 @@ export const currentUser = query({
     })
   ),
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (user === null) {
-      return null;
-    }
-    return user;
+    // For now, return null since we're using localStorage-based auth
+    return null;
   },
 });
 
@@ -70,17 +45,21 @@ export const getUserByEmail = query({
   },
 });
 
-export const updateUserName = mutation({
-  args: { name: v.string() },
-  returns: v.null(),
+export const updateUser = mutation({
+  args: { 
+    email: v.string(),
+    name: v.string(),
+  },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), args.email))
+      .first();
+    
     if (!user) {
-      throw new Error("User must be authenticated");
+      throw new Error("User not found");
     }
-    await ctx.db.patch(user._id, {
-      name: args.name,
-    });
-    return null;
+    
+    await ctx.db.patch(user._id, { name: args.name });
   },
 });

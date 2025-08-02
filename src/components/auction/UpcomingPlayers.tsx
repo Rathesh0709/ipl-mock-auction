@@ -21,89 +21,72 @@ import { Clock, Users } from "lucide-react";
 
 interface UpcomingPlayersProps {
   auctionId: Id<"auctions">;
-  currentPlayerIndex: number;
 }
 
-export function UpcomingPlayers({ auctionId, currentPlayerIndex }: UpcomingPlayersProps) {
-  const allPlayers = useQuery(api.ai.getAllAuctionPlayers, { auctionId });
-  
-  if (!allPlayers) {
-    return (
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="text-center py-8">
-          <Clock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-300">Loading upcoming players...</p>
-        </CardContent>
-      </Card>
-    );
-  }
+interface Player {
+  _id: Id<"players">;
+  playerName: string;
+  country: string;
+  age: number;
+  specialism?: string;
+  reservePriceRsLakh: number;
+  status: "available" | "sold" | "unsold";
+}
 
-  // Get upcoming players (next 10 players after current)
+export function UpcomingPlayers({ auctionId }: UpcomingPlayersProps) {
+  const allPlayers = useQuery(api.ai.getAllAuctionPlayers, { auctionId }) || [];
+
   const upcomingPlayers = allPlayers
-    .filter(player => player.status === "available")
-    .slice(0, 10);
-
-  if (upcomingPlayers.length === 0) {
-    return (
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="text-center py-8">
-          <Clock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-300">No upcoming players</p>
-        </CardContent>
-      </Card>
-    );
-  }
+    .filter((player: Player) => player.status === "available")
+    .slice(0, 10); // Show next 10 players
 
   return (
-    <Card className="bg-gray-800 border-gray-700">
+    <Card className="bg-gradient-to-br from-yellow-900/20 to-yellow-800/20 border-yellow-500/30">
       <CardHeader>
-        <CardTitle className="text-lg text-white">Upcoming Players</CardTitle>
-        <CardDescription className="text-gray-300">
-          Next {upcomingPlayers.length} players in the auction
+        <CardTitle className="flex items-center gap-2 text-yellow-400">
+          <Clock className="h-5 w-5" />
+          Upcoming Players ({upcomingPlayers.length})
+        </CardTitle>
+        <CardDescription className="text-yellow-300">
+          Next players in the auction queue
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        {upcomingPlayers.length > 0 ? (
           <Table>
             <TableHeader>
-              <TableRow className="border-gray-700">
-                <TableHead className="text-gray-300">Player</TableHead>
-                <TableHead className="w-32 text-gray-300">Role</TableHead>
-                <TableHead className="w-24 text-gray-300">Country</TableHead>
-                <TableHead className="text-right w-20 text-gray-300">Base Price</TableHead>
+              <TableRow className="border-yellow-500/30">
+                <TableHead className="text-yellow-300">Player</TableHead>
+                <TableHead className="text-yellow-300">Role</TableHead>
+                <TableHead className="text-yellow-300">Country</TableHead>
+                <TableHead className="text-yellow-300">Base Price</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {upcomingPlayers.map((player, index) => (
-                <TableRow key={player._id} className="border-gray-700">
-                  <TableCell>
-                    <div className="min-w-0">
-                      <div className="font-medium truncate text-white">
-                        {index + 1}. {player.playerName}
-                      </div>
-                      <div className="text-sm text-gray-400 truncate">
-                        Age: {player.age}
-                      </div>
-                    </div>
+              {upcomingPlayers.map((player: Player, index: number) => (
+                <TableRow key={player._id} className="border-yellow-500/20">
+                  <TableCell className="font-medium text-yellow-100">
+                    {player.playerName}
                   </TableCell>
-                  <TableCell className="w-32">
-                    <Badge variant="outline" className="truncate max-w-full bg-green-500/20 text-green-300 border-green-500/30">
+                  <TableCell>
+                    <Badge variant="secondary" className="bg-yellow-800/50 text-yellow-200">
                       {player.specialism || "All-rounder"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="w-24">
-                    <Badge variant="outline" className="truncate max-w-full bg-blue-500/20 text-blue-300 border-blue-500/30">
-                      {player.country}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium w-20 text-white">
-                    ₹{((player.reservePriceRsLakh || 0) / 100).toFixed(2)}cr
+                  <TableCell className="text-yellow-200">{player.country}</TableCell>
+                  <TableCell className="text-yellow-200">
+                    ₹{(player.reservePriceRsLakh / 100).toFixed(2)}cr
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
+        ) : (
+          <div className="text-center py-8 text-yellow-300">
+            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No upcoming players</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

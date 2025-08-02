@@ -15,139 +15,153 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import { Doc } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
-import { Crown, Users, Wallet } from "lucide-react";
+import { Trophy, Users, Wallet } from "lucide-react";
 
 interface TeamDashboardProps {
-  teams: Doc<"teams">[];
-  winnerId?: string;
+  auctionId: Doc<"auctions">["_id"];
 }
 
-export function TeamDashboard({ teams, winnerId }: TeamDashboardProps) {
+interface Team {
+  _id: Id<"teams">;
+  name: string;
+  remainingPurse: number;
+  playersCount: number;
+}
+
+interface TeamPlayer {
+  _id: string;
+  playerName: string;
+  country: string;
+  specialism?: string;
+  basePrice: number;
+  soldPrice: number;
+}
+
+export function TeamDashboard({ auctionId }: TeamDashboardProps) {
+  const teams = useQuery(api.auctions.getAuctionTeams, { auctionId }) || [];
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-        {teams.map((team) => {
-          const isWinner = winnerId === team._id;
-          const spentAmount = Math.round((100 - team.remainingPurse) * 100) / 100; // Assuming initial purse was 100
-          return (
-            <Card key={team._id} className={`relative bg-gray-800 border-gray-700 ${isWinner ? "ring-2 ring-yellow-500" : ""}`}>
-              {isWinner && (
-                <div className="absolute -top-2 -right-2">
-                  <Badge className="bg-yellow-500 text-white">
-                    <Crown className="w-3 h-3 mr-1" />
-                    Winner
-                  </Badge>
-                </div>
-              )}
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg truncate text-white">{team.name}</CardTitle>
-                <CardDescription className="text-gray-300">Team Overview</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-sm text-gray-300">Players</span>
-                  </div>
-                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">{team.playersCount}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Wallet className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-sm text-gray-300">Remaining</span>
-                  </div>
-                  <Badge variant="outline" className="flex-shrink-0 bg-green-500/20 text-green-300 border-green-500/30">₹{Math.round(team.remainingPurse * 100) / 100}cr</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Wallet className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-sm text-gray-300">Spent</span>
-                  </div>
-                  <Badge variant="destructive" className="flex-shrink-0 bg-red-500/20 text-red-300 border-red-500/30">₹{Math.round(spentAmount * 100) / 100}cr</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+    <div className="space-y-6">
+      {/* Teams Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {teams.map((team: Team) => (
+          <TeamCard key={team._id} team={team} auctionId={auctionId} />
+        ))}
       </div>
-      <TeamPlayersTable teams={teams} />
+
+      {/* All Teams Table */}
+      <Card className="bg-gradient-to-br from-gray-900/20 to-gray-800/20 border-gray-700">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Trophy className="h-5 w-5" />
+            All Teams
+          </CardTitle>
+          <CardDescription className="text-gray-300">
+            Complete overview of all teams in the auction
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-gray-700">
+                <TableHead className="text-gray-300">Team</TableHead>
+                <TableHead className="text-gray-300">Players</TableHead>
+                <TableHead className="text-gray-300">Remaining Purse</TableHead>
+                <TableHead className="text-gray-300">Spent</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {teams.map((team: Team) => {
+                const spentAmount = Math.round((100 - team.remainingPurse) * 100) / 100;
+                return (
+                  <TableRow key={team._id} className="border-gray-700">
+                    <TableCell className="font-medium text-white">
+                      {team.name}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="bg-blue-800/50 text-blue-200">
+                        {team.playersCount} players
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-green-400 font-medium">
+                      ₹{team.remainingPurse.toFixed(2)}cr
+                    </TableCell>
+                    <TableCell className="text-red-400 font-medium">
+                      ₹{spentAmount.toFixed(2)}cr
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function TeamPlayersTable({ teams }: { teams: Doc<"teams">[] }) {
-  const allTeamPlayers = teams.map((team) => {
-    const teamPlayers = useQuery(api.ai.getTeamPlayers, {
-      auctionId: team.auctionId,
-      teamId: team._id,
-    });
-    return { team, players: teamPlayers || [] };
-  });
+interface TeamCardProps {
+  team: Team;
+  auctionId: Doc<"auctions">["_id"];
+}
 
-  const hasAnyPlayers = allTeamPlayers.some((tp) => tp.players.length > 0);
+function TeamCard({ team, auctionId }: TeamCardProps) {
+  const teamPlayers = useQuery(api.ai.getTeamPlayers, {
+    auctionId,
+    teamId: team._id,
+  }) || [];
 
-  if (!hasAnyPlayers) {
-    return (
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="text-center py-8">
-          <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-300">No players have been bought yet</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const totalSpent = teamPlayers.reduce((sum: number, player: TeamPlayer) => sum + (player.soldPrice || 0), 0);
 
-     return (
-     <Card className="bg-gray-800 border-gray-700">
-       <CardHeader>
-         <CardTitle className="text-white">All Team Squads</CardTitle>
-         <CardDescription className="text-gray-300">Players bought by each team</CardDescription>
-       </CardHeader>
-       <CardContent>
-         <div className="overflow-x-auto">
-           <Table>
-             <TableHeader>
-               <TableRow className="border-gray-700">
-                 <TableHead className="w-24 text-gray-300">Team</TableHead>
-                 <TableHead className="text-gray-300">Player</TableHead>
-                 <TableHead className="w-32 text-gray-300">Role</TableHead>
-                 <TableHead className="text-right w-20 text-gray-300">Price</TableHead>
-               </TableRow>
-             </TableHeader>
-             <TableBody>
-               {allTeamPlayers.map(({ team, players }) =>
-                 players.map((player) => (
-                   <TableRow key={`${team._id}-${player._id}`} className="border-gray-700">
-                     <TableCell className="w-24">
-                       <Badge variant="outline" className="truncate max-w-full bg-blue-500/20 text-blue-300 border-blue-500/30">
-                         {team.name}
-                       </Badge>
-                     </TableCell>
-                     <TableCell>
-                       <div className="min-w-0">
-                         <div className="font-medium truncate text-white">{player.playerName}</div>
-                         <div className="text-sm text-gray-400 truncate">
-                           {player.country}
-                         </div>
-                       </div>
-                     </TableCell>
-                     <TableCell className="w-32">
-                       <Badge variant="secondary" className="truncate max-w-full bg-green-500/20 text-green-300">
-                         {player.specialism || "All-rounder"}
-                       </Badge>
-                     </TableCell>
-                     <TableCell className="text-right font-medium w-20 text-white">
-                       ₹{Math.round(player.soldPrice * 100) / 100}cr
-                     </TableCell>
-                   </TableRow>
-                 ))
-               )}
-             </TableBody>
-           </Table>
-         </div>
-       </CardContent>
-     </Card>
-   );
+  return (
+    <Card className="bg-gradient-to-br from-gray-900/20 to-gray-800/20 border-gray-700 hover:border-gray-600 transition-colors">
+      <CardHeader>
+        <CardTitle className="text-white truncate">{team.name}</CardTitle>
+        <CardDescription className="text-gray-300">Team Overview</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-blue-400" />
+            <div>
+              <p className="text-xs text-gray-400">Players</p>
+              <p className="text-sm font-medium text-white">{team.playersCount}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-green-400" />
+            <div>
+              <p className="text-xs text-gray-400">Remaining</p>
+              <p className="text-sm font-medium text-green-400">
+                ₹{team.remainingPurse.toFixed(2)}cr
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {teamPlayers.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400">Recent Players</p>
+            <div className="space-y-1">
+              {teamPlayers.slice(0, 3).map((player: TeamPlayer) => (
+                <div key={player._id} className="flex items-center justify-between text-xs">
+                  <span className="text-gray-300 truncate">{player.playerName}</span>
+                  <span className="text-green-400 font-medium">
+                    ₹{player.soldPrice.toFixed(2)}cr
+                  </span>
+                </div>
+              ))}
+              {teamPlayers.length > 3 && (
+                <p className="text-xs text-gray-500">
+                  +{teamPlayers.length - 3} more players
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }

@@ -1,11 +1,5 @@
-import { useEffect } from "react";
+import React from "react";
+
 export function VlyToolbar() {
-useEffect(() => {
-// Send initial route to parent
-window.parent.postMessage(
-{ type: "iframe-route-change", path: window.location.pathname },
-"*",
-);
-}, []);
-return null;
+  return null; // Empty component for now
 }

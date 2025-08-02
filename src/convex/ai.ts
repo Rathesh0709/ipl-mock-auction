@@ -118,65 +118,58 @@ return players;
 
 // Get team players (query)
 export const getTeamPlayers = query({
-args: {
-auctionId: v.id("auctions"),
-teamId: v.id("teams")
-},
-returns: v.array(v.object({
-_id: v.id("players"),
-playerName: v.string(),
-basePrice: v.number(),
-country: v.string(),
-specialism: v.optional(v.string()),
-soldPrice: v.number(),
-})),
-handler: async (ctx, args) => {
-const soldPlayers = await ctx.db
-.query("auctionPlayers")
-.withIndex("by_auction", (q) => q.eq("auctionId", args.auctionId))
-.filter((q) => q.eq(q.field("soldToTeam"), args.teamId))
-.collect();
-const players = [];
-for (const auctionPlayer of soldPlayers) {
-const player = await ctx.db.get(auctionPlayer.playerId);
-if (player && auctionPlayer.soldPrice) {
-players.push({
-_id: player._id,
-playerName: `${player.firstName} ${player.surname}`,
-basePrice: Math.round((player.reservePriceRsLakh / 100) * 100) / 100, // Convert from lakhs to crores
-country: player.country,
-specialism: player.specialism,
-soldPrice: Math.round(auctionPlayer.soldPrice * 100) / 100,
-});
-}
-}
-return players;
-},
+  args: { 
+    auctionId: v.id("auctions"),
+    teamId: v.id("teams"),
+  },
+  returns: v.array(v.object({
+    _id: v.string(),
+    playerName: v.string(),
+    country: v.string(),
+    specialism: v.optional(v.string()),
+    basePrice: v.number(),
+    soldPrice: v.number(),
+  })),
+  handler: async (ctx, args) => {
+    // Get all auction players for this auction
+    const auctionPlayers = await ctx.db
+      .query("auctionPlayers")
+      .withIndex("by_auction", (q) => q.eq("auctionId", args.auctionId))
+      .filter((q) => q.eq(q.field("soldToTeam"), args.teamId))
+      .collect();
+
+    const players = [];
+    for (const auctionPlayer of auctionPlayers) {
+      const player = await ctx.db.get(auctionPlayer.playerId);
+      if (player) {
+        players.push({
+          _id: player._id,
+          playerName: `${player.firstName} ${player.surname}`,
+          country: player.country,
+          specialism: player.specialism,
+          basePrice: Math.round(player.reservePriceRsLakh * 100) / 100,
+          soldPrice: Math.round((auctionPlayer.soldPrice || 0) * 100) / 100,
+        });
+      }
+    }
+    return players;
+  },
 });
 // Declare winner (mutation)
 export const declareWinner = mutation({
-args: {
-auctionId: v.id("auctions"),
-winnerId: v.id("teams"),
-winnerScore: v.number(),
-},
-returns: v.null(),
-handler: async (ctx, args) => {
-const user = await getCurrentUser(ctx);
-if (!user) {
-throw new Error("User must be authenticated");
-}
-const auction = await ctx.db.get(args.auctionId);
-if (!auction) {
-throw new Error("Auction not found");
-}
-if (auction.createdBy !== user._id) {
-throw new Error("Only auction creator can declare winner");
-}
-await ctx.db.patch(args.auctionId, {
-winnerId: args.winnerId,
-winnerScore: args.winnerScore,
-});
-return null;
-},
+  args: { 
+    auctionId: v.id("auctions"),
+    winnerId: v.id("teams"),
+    winnerScore: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // Update auction with winner
+    await ctx.db.patch(args.auctionId, {
+      winnerId: args.winnerId,
+      winnerScore: args.winnerScore,
+      status: "completed",
+    });
+
+    return args.winnerId;
+  },
 });

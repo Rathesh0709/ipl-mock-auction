@@ -60,7 +60,7 @@ const currentSkipVotes = useQuery(api.bidding.getCurrentSkipVotes, {
   });
   const timerStatus = useQuery(api.bidding.checkTimerExpiration, {
     auctionId: auctionId as any,
-  }, { pollInterval: 100 }); // Poll every 100ms for very responsive updates
+  });
 
   const startTimerForCurrentPlayer = useMutation(api.bidding.startTimerForCurrentPlayer);
   const handleTimerExpiration = useMutation(api.bidding.handleTimerExpirationMutation);
@@ -301,12 +301,14 @@ totalPlayers > 0 ? (processedPlayers / totalPlayers) * 100 : 0;
 
 return (
 <>
-<TeamNameDialog
-open={isTeamNameOpen}
-onOpenChange={setTeamNameOpen}
-        auctionId={auctionId as any}
-currentName={userTeam?.name}
-/>
+{userTeam && (
+  <TeamNameDialog
+    teamId={userTeam._id}
+    currentName={userTeam.name || "My Team"}
+    open={isTeamNameOpen}
+    onOpenChange={setTeamNameOpen}
+  />
+)}
 <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
 <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 border-b border-gray-700 bg-gray-900/80 backdrop-blur-sm sm:px-6">
 <div className="flex items-center gap-4">
@@ -460,23 +462,20 @@ Vote Skip ({currentSkipVotes} / {teams.length})
 <TabsTrigger value="upcoming-players" className="text-gray-300 data-[state=active]:bg-blue-500 data-[state=active]:text-white">Upcoming Players</TabsTrigger>
 <TabsTrigger value="auctioned-players" className="text-gray-300 data-[state=active]:bg-blue-500 data-[state=active]:text-white">Auctioned Players</TabsTrigger>
 </TabsList>
-<TabsContent value="my-team">
+<TabsContent value="my-team" className="space-y-4">
 {userTeam ? (
-<MyTeamDashboard
-team={userTeam}
-onEditName={() => setTeamNameOpen(true)}
-/>
+<MyTeamDashboard auctionId={auctionId as any} userEmail={user?.email || ""} />
 ) : (
 <div className="text-center py-8">
 <p>You are not part of a team in this auction.</p>
 </div>
 )}
 </TabsContent>
-<TabsContent value="all-teams">
-<TeamDashboard teams={teams} />
+<TabsContent value="all-teams" className="space-y-4">
+<TeamDashboard auctionId={auctionId as any} />
 </TabsContent>
-<TabsContent value="upcoming-players">
-<UpcomingPlayers auctionId={auctionId as any} currentPlayerIndex={processedPlayers} />
+<TabsContent value="upcoming-players" className="space-y-4">
+<UpcomingPlayers auctionId={auctionId as any} />
 </TabsContent>
 <TabsContent value="auctioned-players">
 <AuctionedPlayers auctionId={auctionId as any} />

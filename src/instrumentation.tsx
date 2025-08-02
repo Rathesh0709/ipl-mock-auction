@@ -1,7 +1,9 @@
-import { ReactNode } from "react";
+import React from "react";
+
 interface InstrumentationProviderProps {
-children: ReactNode;
+  children: React.ReactNode;
 }
+
 export function InstrumentationProvider({ children }: InstrumentationProviderProps) {
-return <>{children}</>;
+  return <>{children}</>;
 }

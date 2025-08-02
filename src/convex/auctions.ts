@@ -481,3 +481,41 @@ export const getUserTeam = query({
     };
   },
 });
+
+export const getAuctionTeams = query({
+  args: { auctionId: v.id("auctions") },
+  returns: v.array(v.object({
+    _id: v.id("teams"),
+    name: v.string(),
+    ownerId: v.id("users"),
+    remainingPurse: v.float64(),
+    playersCount: v.float64(),
+    auctionId: v.id("auctions"),
+  })),
+  handler: async (ctx, args) => {
+    const teams = await ctx.db
+      .query("teams")
+      .withIndex("by_auction", (q) => q.eq("auctionId", args.auctionId))
+      .collect();
+    
+    // Return only the fields specified in the validator
+    return teams.map(team => ({
+      _id: team._id,
+      name: team.name,
+      ownerId: team.ownerId,
+      remainingPurse: team.remainingPurse,
+      playersCount: team.playersCount,
+      auctionId: team.auctionId,
+    }));
+  },
+});
+
+export const updateTeamName = mutation({
+  args: { 
+    teamId: v.id("teams"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.teamId, { name: args.name });
+  },
+});

@@ -1,102 +1,106 @@
 import { Button } from "@/components/ui/button";
 import {
-Dialog,
-DialogContent,
-DialogDescription,
-DialogFooter,
-DialogHeader,
-DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
-import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { Edit } from "lucide-react";
+
 interface TeamNameDialogProps {
-open: boolean;
-onOpenChange: (open: boolean) => void;
-auctionId: Id<"auctions">;
-currentName?: string;
+  teamId: Id<"teams">;
+  currentName: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
-export function TeamNameDialog({
-open,
-onOpenChange,
-auctionId,
-currentName,
-}: TeamNameDialogProps) {
-const [teamName, setTeamName] = useState("");
-const [isLoading, setIsLoading] = useState(false);
-const updateTeamName = useMutation(api.auctions.updateTeamName);
-useEffect(() => {
-if (currentName) {
-setTeamName(currentName);
-}
-}, [currentName]);
-const handleSubmit = async (e: React.FormEvent) => {
-e.preventDefault();
-if (!teamName.trim()) return;
-setIsLoading(true);
-try {
-await updateTeamName({
-auctionId,
-teamName: teamName.trim(),
-});
-toast.success("Team name updated successfully!");
-onOpenChange(false);
-} catch (error: any) {
-toast.error(error.message || "Failed to update team name");
-} finally {
-setIsLoading(false);
-}
-};
-return (
-<Dialog open={open} onOpenChange={onOpenChange}>
-<DialogContent className="sm:max-w-[425px]">
-<DialogHeader>
-<DialogTitle>Edit Team Name</DialogTitle>
-<DialogDescription>
-Change your team name for this auction.
-</DialogDescription>
-</DialogHeader>
-<form onSubmit={handleSubmit}>
-<div className="grid gap-4 py-4">
-<div className="grid gap-2">
-<Label htmlFor="teamName">Team Name</Label>
-<Input
-id="teamName"
-value={teamName}
-onChange={(e) => setTeamName(e.target.value)}
-placeholder="Enter your team name"
-required
-disabled={isLoading}
-/>
-</div>
-</div>
-<DialogFooter>
-<Button
-type="button"
-variant="outline"
-onClick={() => onOpenChange(false)}
-disabled={isLoading}
->
-Cancel
-</Button>
-<Button type="submit" disabled={isLoading || !teamName.trim()}>
-{isLoading ? (
-<>
-<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-Updating...
-</>
-) : (
-"Update Name"
-)}
-</Button>
-</DialogFooter>
-</form>
-</DialogContent>
-</Dialog>
-);
+
+export function TeamNameDialog({ teamId, currentName, open, onOpenChange }: TeamNameDialogProps) {
+  const updateTeamName = useMutation(api.auctions.updateTeamName);
+  const [name, setName] = useState(currentName);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name.trim()) {
+      toast.error("Please enter a team name");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await updateTeamName({
+        teamId,
+        name: name.trim(),
+      });
+      toast.success("Team name updated successfully!");
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update team name");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-gray-900 border-gray-700 text-white">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-white">
+            <Edit className="h-5 w-5" />
+            Edit Team Name
+          </DialogTitle>
+          <DialogDescription className="text-gray-300">
+            Update your team name
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-gray-200">
+              Team Name
+            </Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="Enter team name"
+              value={name}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+              className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+              required
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              disabled={isLoading}
+            >
+              {isLoading ? "Updating..." : "Update Name"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
