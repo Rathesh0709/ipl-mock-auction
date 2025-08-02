@@ -13,13 +13,6 @@ export default function Landing() {
         </div>
         <nav className="flex gap-4 sm:gap-6">
           <AuthButton />
-          <Button 
-            variant="ghost" 
-            className="text-white hover:text-blue-400 hover:bg-blue-400/10"
-            onClick={() => window.location.href = '/dashboard'}
-          >
-            Dashboard
-          </Button>
         </nav>
       </header>
       <main className="flex-1">
@@ -37,13 +30,13 @@ export default function Landing() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                <AuthButton />
                 <Button 
                   size="lg" 
                   variant="outline" 
                   className="border-white text-white hover:bg-white hover:text-black px-8 py-3 text-lg"
+                  onClick={() => window.location.href = '/dashboard'}
                 >
-                  Watch Demo
+                  Dashboard
                 </Button>
               </div>
             </div>

@@ -3,10 +3,18 @@ import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } 
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { AuthCard } from "./AuthCard";
+import { useNavigate } from "react-router";
 
 export function AuthButton() {
   const { isAuthenticated, user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleAuthSuccess = () => {
+    setIsOpen(false);
+    // Redirect to dashboard after successful login
+    navigate("/dashboard");
+  };
 
   if (isAuthenticated && user) {
     return (
@@ -39,7 +47,7 @@ export function AuthButton() {
         <DialogDescription className="text-gray-300">
           Enter your email to join the auction platform
         </DialogDescription>
-        <AuthCard onSuccess={() => setIsOpen(false)} />
+        <AuthCard onSuccess={handleAuthSuccess} />
       </DialogContent>
     </Dialog>
   );
