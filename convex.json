@@ -1,0 +1,10 @@
+{
+  "functions": "src/convex/",
+  "node": {
+    "18": {
+      "externalPackages": [
+        "@faker-js/faker"
+      ]
+    }
+  }
+}
